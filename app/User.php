@@ -2,8 +2,9 @@
 
 namespace App;
 
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
@@ -27,6 +28,16 @@ class User extends Authenticatable
         'password', 'remember_token',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+
     /*
     |------------------------------------------------------------------------------------
     | Validations
@@ -34,17 +45,17 @@ class User extends Authenticatable
     */
     public static function rules($update = false, $id = null)
     {
-        $commun = [
+        $common = [
             'email'    => "required|email|unique:users,email,$id",
             'password' => 'nullable|confirmed',
             'avatar' => 'image',
         ];
 
         if ($update) {
-            return $commun;
+            return $common;
         }
 
-        return array_merge($commun, [
+        return array_merge($common, [
             'email'    => 'required|email|max:255|unique:users',
             'password' => 'required|confirmed|min:6',
         ]);
@@ -63,7 +74,7 @@ class User extends Authenticatable
     public function getAvatarAttribute($value)
     {
         if (!$value) {
-            return 'http://placehold.it/160x160';
+            return 'https://placehold.it/160x160';
         }
     
         return config('variables.avatar.public').$value;
@@ -81,8 +92,7 @@ class User extends Authenticatable
     public static function boot()
     {
         parent::boot();
-        static::updating(function($user)
-        {
+        static::updating(function ($user) {
             $original = $user->getOriginal();
             
             if (\Hash::check('', $user->password)) {
